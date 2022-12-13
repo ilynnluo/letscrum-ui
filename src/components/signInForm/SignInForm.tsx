@@ -1,41 +1,34 @@
-import React from 'react'
+import React, { useEffect } from 'react'
+import SaveIcon from '@mui/icons-material/Save'
 import { Box, TextField, Button } from '@mui/material'
-import axios from 'axios'
+import { LoadingButton } from '@mui/lab'
+import { useAppDispatch, useAppSelector } from '../../redux/hooks'
+import { userSignIn, selectUserLoading, selectUserError, selectUserAccessToken } from '../../redux/reducers/userSlice'
+import { useNavigate } from 'react-router-dom'
 
 interface UserProps {
   inputName: string
   inputPwd: string
 }
 
-interface ResponseProps {
-  item: {
-    token: {
-      accessToken: string
-    }
-  }
-}
-
 export const SignInForm: React.FunctionComponent = () => {
+  const loading = useAppSelector(selectUserLoading)
+  const error = useAppSelector(selectUserError)
+  const jwt = useAppSelector(selectUserAccessToken)
+  const dispatch = useAppDispatch()
+  const navigate = useNavigate()
+  const signIn: UserProps = {
+    inputName: (document.getElementById('name') as HTMLInputElement).value,
+    inputPwd: (document.getElementById('password') as HTMLInputElement).value
+  }
   const handleSignIn = (): void => {
-    // if define variables seperately, no need interfase
-    // const inputName: string = (document.getElementById('name') as HTMLInputElement).value
-    // const inputPwd: string = (document.getElementById('password') as HTMLInputElement).value
-    const signIn: UserProps = {
-      inputName: (document.getElementById('name') as HTMLInputElement).value,
-      inputPwd: (document.getElementById('password') as HTMLInputElement).value
-    }
-    async function SignIn (): Promise<ResponseProps> {
-      try {
-        const response = await axios.post('https://imoogoo.com/api/v1/signin', {
-          name: signIn.inputName,
-          password: signIn.inputPwd
-        })
-        return response.data
-      } catch (e: any) {
-        return e.message
-      }
-    }
-    void SignIn()
+    void dispatch(userSignIn(signIn))
+      .then(() => {
+        useEffect(() => {
+          navigate('/', { replace: true })
+        }, [jwt])
+      })
+      .catch(() => alert(error))
   }
   return (
     <Box>
@@ -54,9 +47,20 @@ export const SignInForm: React.FunctionComponent = () => {
         defaultValue="Enter password"
         variant="standard"
       />
-      <Button variant="contained" onClick={handleSignIn}>
-        Submit
-      </Button>
+      {
+        loading
+          ? <LoadingButton
+            loading
+            loadingPosition="start"
+            startIcon={<SaveIcon />}
+            variant="contained"
+          >
+            Submit
+          </LoadingButton>
+          : <Button variant="contained" onClick={handleSignIn}>
+            Submit
+          </Button>
+      }
     </Box>
   )
 }
